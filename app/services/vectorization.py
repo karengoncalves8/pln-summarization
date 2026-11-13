@@ -1,100 +1,67 @@
-## TODO Notes for later, Karen was wrong about the Lexicon. Lexicon is different from the tokens.
-# Tokens means: ['wordA', 'wordB'] withou stopwords, stemed and without ponctuation.
-# What i need to do is also create a dict from the strucutre i mapped that contains the repeatability of that word in the sentence.
+"""Vectorization services.
 
-from app.models.models import Sentence, BowVector, TfIdfVector, Document
+Terminology:
+- Tokens: the per-sentence list produced by PreProcessingService, e.g. ['wordA', 'wordB'],
+  already lemmatized, lowercased and without stopwords/punctuation.
+- Lexicon: the vocabulary of the whole document. Each word maps to how many times it
+  appears in total (`counter`) and in how many sentences it appears (`sent_counter`).
+- Bag of Words: for one sentence, how many times each lexicon word repeats in that
+  sentence, aligned with the lexicon's (sorted) vocabulary.
+"""
+
+from collections import Counter
 from math import log10
 
+from app.models.models import BowVector, Document, Lexicon, LexiconEntry, Sentence, TfIdfVector
+
+
+class LexiconService:
+    def execute(self, document: Document) -> Lexicon:
+        """Builds the lexicon (vocabulary + counters) from all sentences of the document."""
+        counters: Counter[str] = Counter()
+        sent_counters: Counter[str] = Counter()
+
+        for sentence in document.sentences:
+            counters.update(sentence.tokens)
+            sent_counters.update(set(sentence.tokens))  # each word counts once per sentence
+
+        entries = {
+            word: LexiconEntry(counter=counters[word], sent_counter=sent_counters[word])
+            for word in sorted(counters)
+        }
+        return Lexicon(entries=entries, n_sentences=len(document.sentences))
+
+
 class VectorizationService:
-    def execute(self, sentence: Sentence):
-        bow_vector = []
-        model_lexicon_list = list(sentence.tokens)
-        for position in range(len(model_lexicon_list)):
-            bow_vector.append(0)
-            for w in sentence.text:
-                if w == model_lexicon_list[position]:
-                    bow_vector[position] +=1
-        return bow_vector
+    def execute(self, sentence: Sentence, lexicon: Lexicon) -> BowVector:
+        """Builds the Bag of Words of a sentence, aligned with the lexicon vocabulary."""
+        token_counts = Counter(sentence.tokens)
+        vocabulary = list(lexicon.entries)
+        counts = [token_counts.get(word, 0) for word in vocabulary]
+        sentence.bag_of_words = counts
+        return BowVector(vocabulary=vocabulary, counts=counts)
 
 
 class TfIdfTransformService:
     def __init__(self):
         self.vector_service = VectorizationService()
 
-    def execute(self, sentence: Sentence):
-        sentence_bow = self.vector_service.execute(sentence)
-        tfidf_vector = []
-        pos = 0
-        for key in self.vector_service.lexicon:            
-            tf = (1 +sentence_bow[pos])
-            idf = (1+log10(self.lang_model.corpus_sent_size/(1 +self.lang_model.lexicon[key]['sent_counter'])))
-            tfidf_vector.append(tf*idf)
-            pos+=1
-        return tfidf_vector
+    def execute(self, sentence: Sentence, lexicon: Lexicon) -> TfIdfVector:
+        """Weights the sentence's Bag of Words by TF-IDF, treating each sentence as a document.
 
+        tf  = 1 + log10(count) if the word appears in the sentence, else 0
+        idf = 1 + log10((1 + N) / (1 + sentences containing the word))   (smoothed, always >= 1)
+        """
+        bow = self.vector_service.execute(sentence, lexicon)
+        n_sentences = lexicon.n_sentences
 
-class LexiconService:
-    instance = None
+        weights = []
+        for word, count in zip(bow.vocabulary, bow.counts):
+            if count == 0:
+                weights.append(0.0)
+                continue
+            tf = 1 + log10(count)
+            idf = 1 + log10((1 + n_sentences) / (1 + lexicon.entries[word].sent_counter))
+            weights.append(tf * idf)
 
-    def __new__(cls):
-        if cls.instance is None:
-            cls.instance = super().__new__(cls)
-        return cls.instance
-
-    def build_lexicon(self, document: Document):
-        ''' Creates a lexicon that corresponds to language model'''
-        model_lexicon = {}
-        corpus_sent_size = 0
-        for sentences in document:
-            last_sentence = 0
-            sentence_counter = 0
-            for sentence in sentences:
-                for word in sentence.tokens:
-                    if word in model_lexicon:
-                        if model_lexicon[word]['last_sentence'] != sentence_counter:
-                            model_lexicon[word]['sent_counter'] += 1
-                            model_lexicon[word]['last_sentence'] = sentence_counter
-                        model_lexicon[word]['counter'] += 1
-                    else:
-                        model_lexicon[word] = {'counter': 1, 'doc_counter': 1, 'sent_counter': 1}
-                        model_lexicon[word]
-
-
-
-    def build_model_lexicon(self, document):   
-        ''' Creates a lexicon that corresponds to language model''' 
-        doc_array = document
-        model_lexicon = {}
-        document_counter = 0
-        last_document = 0   
-        self.corpus_sent_size = 0    
-        for sentences in doc_array: #single document            
-            last_sentence = 0
-            sentence_counter = 0
-            for sentence in sentences: #single sentence
-                words = self.textNormalizer.word_tokenizer(sentence)         
-                self.corpus_sent_size +=1              
-                for word in words:
-                    # stop words removal
-                    if word_lower not in self.textNormalizer.stop_words:     
-                        if word_lower in model_lexicon:              
-                            if model_lexicon[word_lower]['last_document']!= document_counter:
-                                model_lexicon[word_lower]['doc_counter'] +=1
-                                model_lexicon[word_lower]['last_document'] = document_counter
-                            if model_lexicon[word_lower] ['last_sentence'] != sentence_counter:
-                                model_lexicon[word_lower]['sent_counter'] +=1
-                                model_lexicon[word_lower] ['last_sentence'] = sentence_counter                                
-                            model_lexicon[word_lower]['counter'] +=1
-                        else:
-                            model_lexicon[word_lower] = {'counter':1, 'doc_counter':1, 'sent_counter':1}
-                            model_lexicon[word_lower]['last_document'] = document_counter
-                            model_lexicon[word_lower]['last_sentence'] = last_sentence
-                sentence_counter += 1
-            document_counter +=1
-        sorted_lexicon = dict(sorted(model_lexicon.items()))
-        # removing temporary counters:
-        for key in sorted_lexicon.keys():
-            del model_lexicon[key]['last_document']
-            del model_lexicon[key]['last_sentence']
-        self.lexicon = sorted_lexicon
-        return self.lexicon
+        return TfIdfVector(vocabulary=bow.vocabulary, weights=weights)

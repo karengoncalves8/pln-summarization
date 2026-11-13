@@ -1,5 +1,4 @@
-
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Sentence(BaseModel):
@@ -13,7 +12,7 @@ class BowVector(BaseModel):
     counts: list[int]
 
 class Document(BaseModel):
-    sentences: list[Sentence]
+    sentences: list[Sentence] = Field(default_factory=list)
 
 class TfIdfVector(BaseModel):
     vocabulary: list[str]
@@ -25,3 +24,4 @@ class LexiconEntry(BaseModel):
 
 class Lexicon(BaseModel):
     entries: dict[str, LexiconEntry]
+    n_sentences: int = 0
