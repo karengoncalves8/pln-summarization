@@ -3,6 +3,7 @@ from loguru import logger
 from app.services.preprocessing import PreProcessingService
 from app.services.sentence_extraction import SentenceExtractionService
 from app.services.vectorization import TfIdfTransformService, LexiconService
+from app.services.similarity_measurement import SimilarityMeasurementService
 from app.models.models import Document
 
 
@@ -12,14 +13,17 @@ class SummarizationPipeline:
         self.preprocessing = PreProcessingService()
         self.tf_idf_service = TfIdfTransformService()
         self.lexicon_service = LexiconService()
+        self.similarity_service = SimilarityMeasurementService()
 
     def execute(self, text: str, n_sentences: int) -> str:
         sentences = self.sentence_extraction.execute(text)
 
         logger.info(f"Extracted {len(sentences)} sentences from the text.")
 
+        if not sentences:
+            return ""
+
         document = Document()
-        
         for sentence in sentences:
             preprocessed_sentence = self.preprocessing.execute(sentence)
             document.sentences.append(preprocessed_sentence)
@@ -27,9 +31,23 @@ class SummarizationPipeline:
         lexicon = self.lexicon_service.execute(document)
 
         vectors = []
-
         for sentence in document.sentences:
             vector = self.tf_idf_service.execute(sentence, lexicon)
             vectors.append(vector)
 
-        return "Summary generated successfully."
+        matrix = self.similarity_service.build_similarity_matrix(vectors)
+
+        scores = self.similarity_service.textrank(matrix)
+        for sentence, score in zip(document.sentences, scores):
+            sentence.score = score
+            logger.debug(f"{score:.4f} | {sentence.text[:60]}")
+
+        ranked = sorted(
+            range(len(document.sentences)),
+            key=lambda i: document.sentences[i].score,
+            reverse=True
+        )
+
+        selected = sorted(ranked[:n_sentences])
+
+        return " ".join(document.sentences[i].text for i in selected)
