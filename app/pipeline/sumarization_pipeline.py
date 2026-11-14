@@ -15,7 +15,7 @@ class SummarizationPipeline:
         self.lexicon_service = LexiconService()
         self.similarity_service = SimilarityMeasurementService()
 
-    def execute(self, text: str, n_sentences: int) -> str:
+    def execute(self, text: str, n_sentences: int | None = 5) -> str:
         sentences = self.sentence_extraction.execute(text)
 
         logger.info(f"Extracted {len(sentences)} sentences from the text.")
@@ -33,7 +33,7 @@ class SummarizationPipeline:
         vectors = []
         for sentence in document.sentences:
             vector = self.tf_idf_service.execute(sentence, lexicon)
-            vectors.append(vector)
+            vectors.append(vector.weights)
 
         matrix = self.similarity_service.build_similarity_matrix(vectors)
 
@@ -49,5 +49,7 @@ class SummarizationPipeline:
         )
 
         selected = sorted(ranked[:n_sentences])
+
+        breakpoint()
 
         return " ".join(document.sentences[i].text for i in selected)

@@ -28,6 +28,8 @@ class SimilarityMeasurementService:
     def textrank(self, matrix: list[list[float]], d: float = 0.85,
         max_iter: int = 100, tol: float = 1e-6) -> list[float]:
         n = len(matrix)
+        if n == 0:
+            return []
         row_sums = [sum(row) for row in matrix]
         scores = [1.0 / n] * n                      # everyone starts equal
 

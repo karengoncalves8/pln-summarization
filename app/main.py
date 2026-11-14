@@ -1,4 +1,3 @@
-from http.client import HTTPResponse
 from pathlib import Path
 from typing import Annotated
 
@@ -28,6 +27,9 @@ async def summarize(
 ):
     if text is None and file is None:
         raise HTTPException(status_code=400, detail="Either text or file must be provided.")
+
+    if n_sentences is not None and n_sentences < 1:
+        raise HTTPException(status_code=400, detail="n_sentences must be at least 1.")
 
     if file:
         if Path(file.filename).suffix.lower() != ".txt":
