@@ -8,6 +8,7 @@ dependencies = [
     "fastapi[standard]>=0.162.4",
     "loguru>=0.7.3",
     "nltk>=3.10.4",
+    "pt-core-news-sm",
     "pydantic-settings>=2.16.2",
     "spacy>=3.8.18",
 ]
@@ -44,3 +45,6 @@ disable = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.uv.sources]
+pt-core-news-sm = { url = "https://github.com/explosion/spacy-models/releases/download/pt_core_news_sm-3.8.0/pt_core_news_sm-3.8.0-py3-none-any.whl" }
