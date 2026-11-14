@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sumarizador · PLN</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+<body>
+    <main class="workspace">
+        <section aria-labelledby="input-title">
+            <div class="section-heading">
+                <span class="section-number">01</span>
+                <h2 id="input-title">Seu texto</h2>
+            </div>
+
+            <form id="summarization-form" action="/summarize" method="post" enctype="multipart/form-data">
+                <div class="source-tabs" role="group" aria-label="Tipo de entrada">
+                    <button class="source-tab" id="text-tab" type="button" aria-pressed="true">Digitar texto</button>
+                    <button class="source-tab" id="file-tab" type="button" aria-pressed="false">Enviar .txt</button>
+                </div>
+
+                <div id="text-source">
+                    <label for="text">Texto</label>
+                    <textarea id="text" name="text" placeholder="Cole ou digite o texto aqui..."></textarea>
+                </div>
+
+                <div id="file-source" hidden>
+                    <label for="file">Arquivo .txt</label>
+                    <input id="file" name="file" type="file" accept=".txt,text/plain">
+                </div>
+
+                <div class="options">
+                    <div class="count-field">
+                        <label for="n_sentences">Número de frases</label>
+                        <input id="n_sentences" name="n_sentences" type="number" min="1" step="1" value="5" required>
+                    </div>
+                    <button class="example-button" id="use-example" type="button">Usar exemplo ↗</button>
+                </div>
+
+                <button class="submit-button" id="submit-button" type="submit">Resumir texto</button>
+                <p class="message" id="form-message" role="status" aria-live="polite"></p>
+            </form>
+        </section>
+
+        <section aria-labelledby="result-title" aria-live="polite">
+            <div class="section-heading">
+                <span class="section-number">02</span>
+                <h2 id="result-title">Resumo</h2>
+            </div>
+            <div class="result-panel">
+                <div class="empty-state" id="empty-state">
+                    <span class="empty-state-mark" aria-hidden="true">↗</span>
+                    <p>O resumo aparece aqui.</p>
+                </div>
+                <p class="summary-text" id="summary-text" hidden></p>
+            </div>
+            <div class="result-content" id="result-content" hidden>
+                <div class="result-meta">
+                    <p class="result-count" id="result-count"></p>
+                    <span>Pontuação</span>
+                </div>
+                <ol class="sentence-list" id="sentence-list"></ol>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
+</body>
+</html>

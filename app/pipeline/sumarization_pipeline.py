@@ -4,7 +4,7 @@ from app.services.preprocessing import PreProcessingService
 from app.services.sentence_extraction import SentenceExtractionService
 from app.services.vectorization import TfIdfTransformService, LexiconService
 from app.services.similarity_measurement import SimilarityMeasurementService
-from app.models.models import Document
+from app.models.models import Document, SelectedSentence, SummarizationResult
 
 
 class SummarizationPipeline:
@@ -15,13 +15,13 @@ class SummarizationPipeline:
         self.lexicon_service = LexiconService()
         self.similarity_service = SimilarityMeasurementService()
 
-    def execute(self, text: str, n_sentences: int | None = 5) -> str:
+    def execute(self, text: str, n_sentences: int | None = 5) -> SummarizationResult:
         sentences = self.sentence_extraction.execute(text)
 
         logger.info(f"Extracted {len(sentences)} sentences from the text.")
 
         if not sentences:
-            return ""
+            return SummarizationResult(summary="")
 
         document = Document()
         for sentence in sentences:
@@ -49,7 +49,15 @@ class SummarizationPipeline:
         )
 
         selected = sorted(ranked[:n_sentences])
+        selected_sentences = [
+            SelectedSentence(
+                text=document.sentences[i].text,
+                score=document.sentences[i].score,
+            )
+            for i in selected
+        ]
 
-        breakpoint()
-
-        return " ".join(document.sentences[i].text for i in selected)
+        return SummarizationResult(
+            summary=" ".join(sentence.text for sentence in selected_sentences),
+            sentences=selected_sentences,
+        )

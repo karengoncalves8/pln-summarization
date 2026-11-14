@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 from app.config import get_settings
 from app.logger import setup_logging
@@ -13,11 +15,19 @@ settings = get_settings()
 setup_logging()
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
 @app.get("/")
 def root() -> dict[str, str]:
     return {"message": f"Welcome to {settings.app_name}"}
+
+
+@app.get("/app", response_class=HTMLResponse)
+def summarization_page(request: Request):
+    return templates.TemplateResponse(request=request, name="index.html")
+
 
 @app.post("/summarize")
 async def summarize(
@@ -36,6 +46,6 @@ async def summarize(
             raise HTTPException(status_code=400, detail="Only .txt files are supported.") 
         text = await TextExtractionService().execute(file)
 
-    summary = SummarizationPipeline().execute(text, n_sentences)
+    result = SummarizationPipeline().execute(text, n_sentences)
 
-    return JSONResponse(status_code=200, content={"summary": summary})
+    return JSONResponse(status_code=200, content=result.model_dump())

@@ -7,6 +7,17 @@ class Sentence(BaseModel):
     bag_of_words: list[int] = []
     score: float = 0.0
 
+
+class SelectedSentence(BaseModel):
+    text: str
+    score: float
+
+
+class SummarizationResult(BaseModel):
+    summary: str
+    sentences: list[SelectedSentence] = Field(default_factory=list)
+
+
 class BowVector(BaseModel):
     vocabulary: list[str]
     counts: list[int]
