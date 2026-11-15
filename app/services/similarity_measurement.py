@@ -25,29 +25,9 @@ class SimilarityMeasurementService:
                 matrix[j][i] = sim
         return matrix
 
-    def textrank(self, matrix: list[list[float]], d: float = 0.85,
-        max_iter: int = 100, tol: float = 1e-6) -> list[float]:
-        n = len(matrix)
-        if n == 0:
-            return []
-        row_sums = [sum(row) for row in matrix]
-        scores = [1.0 / n] * n                      # everyone starts equal
-
-        for _ in range(max_iter):
-            new_scores = []
-            for i in range(n):
-                # each neighbour j gives i a share of its own score,
-                # proportional to how much of j's similarity goes to i
-                incoming = sum(
-                    matrix[j][i] / row_sums[j] * scores[j]
-                    for j in range(n)
-                    if row_sums[j] > 0
-                )
-                new_scores.append((1 - d) / n + d * incoming)
-
-            converged = max(abs(a - b) for a, b in zip(new_scores, scores)) < tol
-            scores = new_scores
-            if converged:
-                break
-
-        return scores
+    def similarity_sum(self, matrix: list[list[float]]) -> list[float]:
+        """
+            Score of each sentence = sum of its similarity with all other sentences.
+            The diagonal is 0, so a sentence's similarity with itself is not counted.
+        """
+        return [sum(row) for row in matrix]

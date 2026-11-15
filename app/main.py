@@ -19,12 +19,7 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
-@app.get("/")
-def root() -> dict[str, str]:
-    return {"message": f"Welcome to {settings.app_name}"}
-
-
-@app.get("/app", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
 def summarization_page(request: Request):
     return templates.TemplateResponse(request=request, name="index.html")
 

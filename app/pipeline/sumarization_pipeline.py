@@ -37,7 +37,7 @@ class SummarizationPipeline:
 
         matrix = self.similarity_service.build_similarity_matrix(vectors)
 
-        scores = self.similarity_service.textrank(matrix)
+        scores = self.similarity_service.similarity_sum(matrix)
         for sentence, score in zip(document.sentences, scores):
             sentence.score = score
             logger.debug(f"{score:.4f} | {sentence.text[:60]}")
