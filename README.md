@@ -16,7 +16,7 @@ uv run fastapi dev app/main.py      # dev server with reload
 uv run fastapi run app/main.py      # production mode
 ```
 
-Web UI: http://127.0.0.1:8000/app
+Web UI: http://127.0.0.1:8000/
 API docs: http://127.0.0.1:8000/docs
 
 ## Test & lint
